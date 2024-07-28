@@ -1,0 +1,10 @@
+messages:
+  bad_word_alert: "&e[Alert] &a%player% &eused a bad word: &f%message%"
+  mute_message: "&aClick here to mute %player% for using bad words"
+  player_muted: "&cYou have been muted for using bad words."
+  mute_notification: "&e[Notification] &a%player% &ehas been muted for &f%time% &efor &f%motivation%"
+  mute_menu_header: "&6--- Muted Players ---"
+  mute_menu_entry: "&a%player% - &f%time%"
+badwords:
+  - "badword1"
+  - "badword2"

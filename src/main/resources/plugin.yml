@@ -1,0 +1,16 @@
+name: JungleMute
+version: '${project.version}'
+main: org.hydr4.junglemute.JungleMute
+api-version: '1.20'
+author: Hydr4
+commands:
+  jm:
+    description: JungleMute main command
+    usage: /jm <subcommand>
+  mute:
+    description: Mute a player
+    usage: /mute <player> <motivation> <time> <-s/-p>
+permissions:
+  junglemute.staff:
+    description: Permission to receive bad word notifications and use mute commands
+    default: op
