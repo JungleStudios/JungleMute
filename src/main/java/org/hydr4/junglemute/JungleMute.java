@@ -12,6 +12,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.hydr4.junglemute.utils.Text;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class JungleMute extends JavaPlugin implements Listener {
 
     @Override
     public void onEnable() {
+        printASCII();
         saveDefaultConfig();
         config = getConfig();
         mutedPlayers = new HashMap<>();
@@ -31,6 +33,21 @@ public class JungleMute extends JavaPlugin implements Listener {
         getCommand("jm").setExecutor(this);
         getCommand("mute").setExecutor(new MuteCommand(this));
     }
+
+
+private void printASCII() {
+    getLogger().info("");
+    logWithColor(" &d                __        ___            ___  ___ ");
+    logWithColor(" &d   | |  | |\\ | / _` |    |__   |\\/| |  |  |  |__  ");
+    logWithColor(" &d\\__/ \\__/ | \\| \\__> |___ |___  |  | \\__/  |  |___ ");
+    logWithColor(" &d                                                   ");
+    logWithColor("  &8Made by: &9Hydr4                                &8Version: &9" + this.getDescription().getVersion());
+    getLogger().info("");
+}
+
+public void logWithColor(String s) {
+    getServer().getConsoleSender().sendMessage("[" + this.getDescription().getName() + "] " + Text.color(s));
+}
 
     @Override
     public void onDisable() {
