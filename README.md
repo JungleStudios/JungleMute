@@ -11,6 +11,7 @@ JungleMute è un plugin minecraft che permette di moderare la chat del server, f
 
 - **Compatible Versions**: 1.13 - 1.20.x
 - **Tested Versions**: 1.20.x, 1.21
+- **Adding rn**: /unmute (Ho scordato di farlo)
 
 ## Screenshots
 ![image](https://github.com/user-attachments/assets/697c7d6a-2a18-43a3-9d55-a90ef9cfc61a)
