@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,7 +15,13 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.hydr4.junglemute.utils.Text;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -22,6 +29,8 @@ public class JungleMute extends JavaPlugin implements Listener {
 
     private Map<String, Long> mutedPlayers;
     private FileConfiguration config;
+    private FileConfiguration mutesConfig;
+    private Map<String, BadWord> badWords;
 
     @Override
     public void onEnable() {
@@ -29,29 +38,88 @@ public class JungleMute extends JavaPlugin implements Listener {
         saveDefaultConfig();
         config = getConfig();
         mutedPlayers = new HashMap<>();
+        badWords = new HashMap<>();
+        loadBadWords();
+        loadMutes();
         getServer().getPluginManager().registerEvents(this, this);
         getCommand("jm").setExecutor(this);
         getCommand("mute").setExecutor(new MuteCommand(this));
+        getCommand("unmute").setExecutor(new UnmuteCommand(this));
     }
-
-
-private void printASCII() {
-    getLogger().info("");
-    logWithColor(" &d                __        ___            ___  ___ ");
-    logWithColor(" &d   | |  | |\\ | / _` |    |__   |\\/| |  |  |  |__  ");
-    logWithColor(" &d\\__/ \\__/ | \\| \\__> |___ |___  |  | \\__/  |  |___ ");
-    logWithColor(" &d                                                   ");
-    logWithColor("  &8Made by: &9Hydr4                                &8Version: &9" + this.getDescription().getVersion());
-    getLogger().info("");
-}
-
-public void logWithColor(String s) {
-    getServer().getConsoleSender().sendMessage("[" + this.getDescription().getName() + "] " + Text.color(s));
-}
 
     @Override
     public void onDisable() {
+        saveMutes();
         mutedPlayers.clear();
+    }
+
+    private void loadBadWords() {
+        Path badWordsFile = Paths.get(getDataFolder().getPath(), "badwords.txt");
+        if (Files.exists(badWordsFile)) {
+            try {
+                List<String> lines = Files.readAllLines(badWordsFile);
+                for (String line : lines) {
+                    if (line.startsWith("#") || line.isEmpty()) {
+                        continue;
+                    }
+                    String[] parts = line.split(":");
+                    if (parts.length >= 3) {
+                        String word = parts[0];
+                        String pattern = parts[1];
+                        String time = parts[2];
+                        badWords.put(word, new BadWord(pattern, time));
+                    } else {
+                        badWords.put(parts[0], new BadWord(Pattern.quote(parts[0]), config.getString("default_mute_time")));
+                    }
+                }
+            } catch (IOException e) {
+                getLogger().warning("Failed to load badwords.txt: " + e.getMessage());
+            }
+        }
+
+        for (String word : config.getStringList("badwords")) {
+            if (!badWords.containsKey(word)) {
+                badWords.put(word, new BadWord(Pattern.quote(word), config.getString("default_mute_time")));
+            }
+        }
+    }
+
+    private void loadMutes() {
+        File mutesFile = new File(getDataFolder(), "mutes.yml");
+        if (!mutesFile.exists()) {
+            saveResource("mutes.yml", false);
+        }
+        mutesConfig = YamlConfiguration.loadConfiguration(mutesFile);
+        if (mutesConfig.contains("mutes")) {
+            for (String player : mutesConfig.getConfigurationSection("mutes").getKeys(false)) {
+                mutedPlayers.put(player, mutesConfig.getLong("mutes." + player + ".end"));
+            }
+        }
+    }
+
+    private void saveMutes() {
+        for (Map.Entry<String, Long> entry : mutedPlayers.entrySet()) {
+            mutesConfig.set("mutes." + entry.getKey() + ".end", entry.getValue());
+        }
+        try {
+            mutesConfig.save(new File(getDataFolder(), "mutes.yml"));
+        } catch (IOException e) {
+            getLogger().warning("Failed to save mutes.yml: " + e.getMessage());
+        }
+    }
+
+    private void printASCII() {
+        getLogger().info("");
+        logWithColor(" &d                __        ___            ___  ___ ");
+        logWithColor(" &d   | |  | |\\ | / _` |    |__   |\\/| |  |  |  |__  ");
+        logWithColor(" &d\\__/ \\__/ | \\| \\__> |___ |___  |  | \\__/  |  |___ ");
+        logWithColor(" &d                                                   ");
+        logWithColor("  &8Made by: &9Hydr4                                &8Version: &9" + this.getDescription().getVersion());
+        getLogger().info("");
+    }
+
+    public void logWithColor(String s) {
+        getServer().getConsoleSender().sendMessage("[" + this.getDescription().getName() + "] " + Text.color(s));
     }
 
     @EventHandler
@@ -65,9 +133,11 @@ public void logWithColor(String s) {
             return;
         }
 
-        for (String badword : config.getStringList("badwords")) {
-            if (Pattern.compile(Pattern.quote(badword), Pattern.CASE_INSENSITIVE).matcher(message).find()) {
-                event.setMessage(message.replaceAll("(?i)" + Pattern.quote(badword), "****"));
+        for (Map.Entry<String, BadWord> entry : badWords.entrySet()) {
+            String word = entry.getKey();
+            BadWord badWord = entry.getValue();
+            if (Pattern.compile(badWord.getPattern(), Pattern.CASE_INSENSITIVE).matcher(message).find()) {
+                event.setMessage(message.replaceAll("(?i)" + Pattern.quote(word), "****"));
                 notifyStaff(player, message);
                 break;
             }
@@ -99,6 +169,10 @@ public void logWithColor(String s) {
 
     public void mutePlayer(String playerName, long durationMillis) {
         mutedPlayers.put(playerName, System.currentTimeMillis() + durationMillis);
+    }
+
+    public void unmutePlayer(String playerName) {
+        mutedPlayers.remove(playerName);
     }
 
     public long parseDuration(String duration) {
@@ -133,7 +207,7 @@ public void logWithColor(String s) {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (command.getName().equalsIgnoreCase("jm")) {
             if (args.length == 0) {
-                sender.sendMessage(ChatColor.GREEN + "JungleMute v1.0 by Hydr4");
+                sender.sendMessage(ChatColor.GREEN + "JungleMute v1.1 by Hydr4");
                 return true;
             }
             switch (args[0].toLowerCase()) {
@@ -141,11 +215,13 @@ public void logWithColor(String s) {
                     if (sender.hasPermission("junglemute.staff")) {
                         reloadConfig();
                         config = getConfig();
+                        loadBadWords();
+                        loadMutes();
                         sender.sendMessage(ChatColor.GREEN + "Configuration reloaded.");
                     }
                     return true;
                 case "info":
-                    sender.sendMessage(ChatColor.GREEN + "JungleMute v1.0 by Hydr4");
+                    sender.sendMessage(ChatColor.GREEN + "JungleMute v1.1 by Hydr4");
                     return true;
                 case "help":
                     sender.sendMessage(ChatColor.GREEN + "/jm - Show plugin info");
@@ -153,6 +229,7 @@ public void logWithColor(String s) {
                     sender.sendMessage(ChatColor.GREEN + "/jm info - Show plugin info");
                     sender.sendMessage(ChatColor.GREEN + "/jm help - Show this help message");
                     sender.sendMessage(ChatColor.GREEN + "/mute <player> <motivation> <time> <-s/-p> - Mute a player");
+                    sender.sendMessage(ChatColor.GREEN + "/unmute <player> - Unmute a player");
                     return true;
                 case "m":
                 case "menu":
@@ -179,6 +256,24 @@ public void logWithColor(String s) {
             sender.sendMessage(ChatColor.translateAlternateColorCodes('&', config.getString("messages.mute_menu_entry")
                     .replace("%player%", player)
                     .replace("%time%", formatDuration(remainingTime))));
+        }
+    }
+
+    private static class BadWord {
+        private final String pattern;
+        private final String time;
+
+        public BadWord(String pattern, String time) {
+            this.pattern = pattern;
+            this.time = time;
+        }
+
+        public String getPattern() {
+            return pattern;
+        }
+
+        public String getTime() {
+            return time;
         }
     }
 }

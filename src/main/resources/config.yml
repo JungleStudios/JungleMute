@@ -1,10 +1,11 @@
-messages:
-  bad_word_alert: "&e[Alert] &a%player% &eused a bad word: &f%message%"
-  mute_message: "&aClick here to mute %player% for using bad words"
-  player_muted: "&cYou have been muted for using bad words."
-  mute_notification: "&e[Notification] &a%player% &ehas been muted for &f%time% &efor &f%motivation%"
-  mute_menu_header: "&6--- Muted Players ---"
-  mute_menu_entry: "&a%player% - &f%time%"
+default_mute_time: "1h"
 badwords:
-  - "badword1"
-  - "badword2"
+  - word1
+  - word2
+messages:
+  player_muted: "&cYou are muted!"
+  bad_word_alert: "&c%player% used inappropriate language: %message%"
+  mute_message: "&cClick here to mute %player% for bad language!"
+  mute_notification: "&c%player% has been muted for %time% for %motivation%"
+  mute_menu_header: "&eMuted Players:"
+  mute_menu_entry: "&e%player% - %time% remaining"

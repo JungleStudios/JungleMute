@@ -1,0 +1,3 @@
+# word:pattern:time
+damn:\bdamn\b:1h
+crap:\bcrap\b:2h
